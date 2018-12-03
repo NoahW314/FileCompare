@@ -54,6 +54,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.WebView;
@@ -98,6 +99,7 @@ import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.wifi.NetworkConnection;
 import com.qualcomm.robotcore.wifi.NetworkConnectionFactory;
 import com.qualcomm.robotcore.wifi.NetworkType;
+import com.vuforia.Frame;
 
 import org.firstinspires.ftc.ftccommon.external.SoundPlayingRobotMonitor;
 import org.firstinspires.ftc.ftccommon.internal.FtcRobotControllerWatchdogService;
@@ -160,18 +162,13 @@ public class FtcRobotControllerActivity extends Activity
       frameGrabber.setSaveImages(Vision.saveImages);
 
       findViewById(R.id.resultText).setRotation(270-180*SampleProcessor.phoneOrientation.id);
-	  if(SampleProcessor.phoneOrientation == SampleProcessor.PhoneOrientation.UPRIGHT){
-		findViewById(R.id.resultText).setRotation(0);
-      }
-      else if(SampleProcessor.phoneOrientation == SampleProcessor.PhoneOrientation.UPSIDE_DOWN){
-		findViewById(R.id.resultText).setRotation(180);
-      }
     }
 
     //when the "Grab" button is pressed
     public void frameButtonOnClick (View v){
       frameGrabber.grabSingleFrame();
       while (!frameGrabber.isResultReady()) {
+        //Log.v(TAG, "Waiting for result");
         try {
           Thread.sleep(5); //sleep for 5 milliseconds
         } catch (InterruptedException e) {
