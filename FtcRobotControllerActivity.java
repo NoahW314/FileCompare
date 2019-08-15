@@ -50,17 +50,14 @@ import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.StringRes;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.SurfaceView;
 import android.view.View;
-import android.view.WindowManager;
 import android.webkit.WebView;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
+import android.widget.LinearLayout.LayoutParams;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
@@ -99,11 +96,11 @@ import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.wifi.NetworkConnection;
 import com.qualcomm.robotcore.wifi.NetworkConnectionFactory;
 import com.qualcomm.robotcore.wifi.NetworkType;
-import com.vuforia.Frame;
 
 import org.firstinspires.ftc.ftccommon.external.SoundPlayingRobotMonitor;
 import org.firstinspires.ftc.ftccommon.internal.FtcRobotControllerWatchdogService;
 import org.firstinspires.ftc.ftccommon.internal.ProgramAndManageActivity;
+import org.firstinspires.ftc.robotcontroller.ActivityResult;
 import org.firstinspires.ftc.robotcore.external.navigation.MotionDetection;
 import org.firstinspires.ftc.robotcore.internal.hardware.DragonboardLynxDragonboardIsPresentPin;
 import org.firstinspires.ftc.robotcore.internal.network.DeviceNameManagerFactory;
@@ -121,165 +118,13 @@ import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 import org.firstinspires.ftc.robotcore.internal.webserver.RobotControllerWebInfo;
 import org.firstinspires.ftc.robotcore.internal.webserver.WebServer;
 import org.firstinspires.inspection.RcInspectionActivity;
-import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.CameraBridgeViewBase;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import ftc.vision.Core.FrameGrabber;
-import ftc.vision.Core.FrameGrabberOpMode;
-import ftc.vision.Core.JavaCameraView2;
-import ftc.vision.Core.Vision;
-import ftc.vision.RoverSamples.SampleProcessor;
-import ftc.vision.RoverSamples.SampleResult;
-
 @SuppressWarnings("WeakerAccess")
 public class FtcRobotControllerActivity extends Activity
-  {
-    ////////////// START VISION PROCESSING CODE //////////////
-
-    static final int FRAME_WIDTH_REQUEST = 176;
-    static final int FRAME_HEIGHT_REQUEST = 144;
-
-    // Loads camera view of OpenCV for us to use. This lets us see using OpenCV
-    private CameraBridgeViewBase cameraBridgeViewBase;
-
-    //manages getting one frame at a time
-    public static FrameGrabber frameGrabber = null;
-    //manages getting one frame at a time in an opmode
-    public static FrameGrabberOpMode frameGrabberOpMode = null;
-
-    //set up the frameGrabber
-    void myOnCreate () {
-      getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-      cameraBridgeViewBase = (JavaCameraView2) findViewById(R.id.show_camera_activity_java_surface_view);
-      frameGrabber = new FrameGrabber(cameraBridgeViewBase, FRAME_WIDTH_REQUEST, FRAME_HEIGHT_REQUEST);
-      frameGrabber.setImageProcessor(Vision.processor);
-      frameGrabber.setSaveImages(Vision.saveImages);
-
-      findViewById(R.id.resultText).setRotation(270-180*SampleProcessor.phoneOrientation.id);
-    }
-
-    //when the "Grab" button is pressed
-    public void frameButtonOnClick (View v){
-      frameGrabber.grabSingleFrame();
-      while (!frameGrabber.isResultReady()) {
-        //Log.v(TAG, "Waiting for result");
-        try {
-          Thread.sleep(5); //sleep for 5 milliseconds
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      SampleResult result = (SampleResult)(frameGrabber.getResult().getResult());
-      String resultStr = result.toString()+"\n"+result.toString(false);
-      ((TextView) findViewById(R.id.resultText)).setText(resultStr);
-    }
-
-    public void storeCameraView(){
-      FrameGrabberOpMode.cameraView = (JavaCameraView2) findViewById(R.id.show_camera_activity_java_surface_view);
-      frameGrabberOpMode = new FrameGrabberOpMode(FRAME_WIDTH_REQUEST, FRAME_HEIGHT_REQUEST);
-      frameGrabberOpMode.setImageProcessor(Vision.processor);
-      frameGrabberOpMode.setSaveImages(Vision.saveImages);
-      Log.v(TAG, "Frame Grabber initialized");
-    }
-
-    public void initCamera(){
-      if (!OpenCVLoader.initDebug()) {
-        Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
-      } else {
-        Log.d(TAG, "OpenCV library found inside package. Using it!");
-        Log.i(TAG, "OpenCV Manager Connected");
-        FrameGrabberOpMode.cameraView.enableView();
-      }
-    }
-
-    public static SampleResult scanSamples(){
-      Log.v(TAG, "Scanning");
-      frameGrabberOpMode.grabSingleFrame();
-      Log.v(TAG, "Start Waiting");
-      while (!frameGrabberOpMode.isResultReady()) {
-        //Log.v(TAG, "Waiting for result");
-        try {
-          Thread.sleep(5); //sleep for 5 milliseconds
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      }
-      Log.v(TAG, "Results!");
-      SampleResult result = (SampleResult)(frameGrabberOpMode.getResult().getResult());
-      return result;
-    }
-
-    void myOnWindowFocusChanged ( boolean hasFocus){
-      if (hasFocus) {
-        frameGrabber.stopFrameGrabber();
-      } else {
-        frameGrabber.throwAwayFrames();
-      }
-    }
-
-    void myOnPause () {
-      if(frameGrabber != null) {
-        frameGrabber.killFrameGrabber();
-      }
-      if (cameraBridgeViewBase != null) {
-        cameraBridgeViewBase.disableView();
-      }
-    }
-
-    void myOnResume () {
-      if (!OpenCVLoader.initDebug()) {
-        Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-        OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_0_0, this, mLoaderCallback);
-      } else {
-        Log.d(TAG, "OpenCV library found inside package. Using it!");
-        mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-      }
-    }
-
-    public void myOnDestroy () {
-      if (cameraBridgeViewBase != null) {
-        cameraBridgeViewBase.disableView();
-      }
-    }
-
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
-      @Override
-      public void onManagerConnected(int status) {
-        switch (status) {
-          case LoaderCallbackInterface.SUCCESS:
-            Log.i(TAG, "OpenCV Manager Connected");
-            //from now onwards, you can use OpenCV API
-//          Mat m = new Mat(5, 10, CvType.CV_8UC1, new Scalar(0));
-            cameraBridgeViewBase.enableView();
-            break;
-          case LoaderCallbackInterface.INIT_FAILED:
-            Log.i(TAG, "Init Failed");
-            break;
-          case LoaderCallbackInterface.INSTALL_CANCELED:
-            Log.i(TAG, "Install Cancelled");
-            break;
-          case LoaderCallbackInterface.INCOMPATIBLE_MANAGER_VERSION:
-            Log.i(TAG, "Incompatible Version");
-            break;
-          case LoaderCallbackInterface.MARKET_ERROR:
-            Log.i(TAG, "Market Error");
-            break;
-          default:
-            Log.i(TAG, "OpenCV Manager Install");
-            super.onManagerConnected(status);
-            break;
-        }
-      }
-    };
-    ////////////// END VISION PROCESSING CODE //////////////
-
+    {
   public static final String TAG = "RCActivity";
   public String getTag() { return TAG; }
 
@@ -420,17 +265,6 @@ public class FtcRobotControllerActivity extends Activity
 
     setContentView(R.layout.activity_ftc_controller);
 
-    if(Vision.useOpenCVOpMode){
-      storeCameraView();
-    }
-    if(Vision.useOpenCV) {
-      myOnCreate();
-    }
-    else{
-      FrameLayout openCVLayout = (FrameLayout)findViewById(R.id.frameLayout);
-      openCVLayout.setVisibility(View.INVISIBLE);
-    }
-
     preferencesHelper = new PreferencesHelper(TAG, context);
     preferencesHelper.writeBooleanPrefIfDifferent(context.getString(R.string.pref_rc_connected), true);
     preferencesHelper.getSharedPreferences().registerOnSharedPreferenceChangeListener(sharedPreferencesListener);
@@ -451,6 +285,8 @@ public class FtcRobotControllerActivity extends Activity
         popupMenu.show();
       }
     });
+
+    updateMonitorLayout(getResources().getConfiguration());
 
     BlocksOpMode.setActivityAndWebView(this, (WebView) findViewById(R.id.webViewBlocksRuntime));
 
@@ -543,29 +379,12 @@ public class FtcRobotControllerActivity extends Activity
   @Override
   protected void onResume() {
     super.onResume();
-
-    if(Vision.useOpenCVOpMode){
-      initCamera();
-    }
-    if(Vision.useOpenCV) {
-      myOnResume();
-    }
-
     RobotLog.vv(TAG, "onResume()");
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-
-    if(Vision.useOpenCVOpMode){
-      frameGrabberOpMode.killFrameGrabber();
-      FrameGrabberOpMode.cameraView.disableView();
-    }
-    if(Vision.useOpenCV) {
-      myOnPause();
-    }
-
     RobotLog.vv(TAG, "onPause()");
     if (programmingModeController.isActive()) {
       programmingModeController.stopProgrammingMode();
@@ -585,10 +404,6 @@ public class FtcRobotControllerActivity extends Activity
     super.onDestroy();
     RobotLog.vv(TAG, "onDestroy()");
 
-    if(Vision.useOpenCV) {
-      myOnDestroy();
-    }
-
     shutdownRobot();  // Ensure the robot is put away to bed
     if (callback != null) callback.close();
 
@@ -602,6 +417,7 @@ public class FtcRobotControllerActivity extends Activity
 
     preferencesHelper.getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferencesListener);
     RobotLog.cancelWriteLogcatToDisk();
+
   }
 
   protected void bindToService() {
@@ -656,11 +472,6 @@ public class FtcRobotControllerActivity extends Activity
   @Override
   public void onWindowFocusChanged(boolean hasFocus){
     super.onWindowFocusChanged(hasFocus);
-
-    if(Vision.useOpenCV) {
-      myOnWindowFocusChanged(hasFocus);
-    }
-
     // When the window loses focus (e.g., the action overflow is shown),
     // cancel any pending hide action. When the window gains focus,
     // hide the system UI.
@@ -748,6 +559,31 @@ public class FtcRobotControllerActivity extends Activity
   public void onConfigurationChanged(Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
     // don't destroy assets on screen rotation
+    updateMonitorLayout(newConfig);
+  }
+
+  /**
+   * Updates the orientation of monitorContainer (which contains cameraMonitorView and
+   * tfodMonitorView) based on the given configuration. Makes the children split the space.
+   */
+  private void updateMonitorLayout(Configuration configuration) {
+    LinearLayout monitorContainer = (LinearLayout) findViewById(R.id.monitorContainer);
+    if (configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+      // When the phone is landscape, lay out the monitor views horizontally.
+      monitorContainer.setOrientation(LinearLayout.HORIZONTAL);
+      for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+        View view = monitorContainer.getChildAt(i);
+        view.setLayoutParams(new LayoutParams(0, LayoutParams.MATCH_PARENT, 1 /* weight */));
+      }
+    } else {
+      // When the phone is portrait, lay out the monitor views vertically.
+      monitorContainer.setOrientation(LinearLayout.VERTICAL);
+      for (int i = 0; i < monitorContainer.getChildCount(); i++) {
+        View view = monitorContainer.getChildAt(i);
+        view.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1 /* weight */));
+      }
+    }
+    monitorContainer.requestLayout();
   }
 
   @Override
@@ -762,6 +598,7 @@ public class FtcRobotControllerActivity extends Activity
       // We always do a refresh, whether it was a cancel or an OK, for robustness
       cfgFileMgr.getActiveConfigAndUpdateUI();
     }
+    if(ActivityResult.checkRequestCode(request) && result == RESULT_OK){ActivityResult.onActivityResult(request, result, intent);}
   }
 
   public void onServiceBind(final FtcRobotControllerService service) {
@@ -782,6 +619,7 @@ public class FtcRobotControllerActivity extends Activity
         return service.getRobot().eventLoopManager;
       }
     });
+
   }
 
   private void updateUIAndRequestRobotSetup() {
