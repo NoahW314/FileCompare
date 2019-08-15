@@ -193,6 +193,34 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       android:visibility="invisible"
       android:text="" />
 
+      <FrameLayout
+          xmlns:opencv="http://schemas.android.com/apk/res-auto"
+          android:layout_width="fill_parent"
+          android:layout_height="350dp"
+          android:layout_alignParentBottom="true"
+          android:layout_alignParentLeft="true"
+          android:visibility="gone"
+          android:id="@+id/frameLayout">
+          <ftc.vision.Core.JavaCameraView2
+              android:layout_width="fill_parent"
+              android:layout_height="fill_parent"
+              android:visibility="gone"
+              android:id="@+id/show_camera_activity_java_surface_view"
+              opencv:show_fps="true"
+              opencv:camera_id="any"/>
+
+          <!--Use android:rotation for rotating text-->
+          <TextView
+              android:id="@+id/resultText"
+              android:layout_width="124dp"
+              android:layout_height="141dp"
+              android:layout_gravity="start|top"
+              android:text="[RESULT]"
+              android:visibility="gone"
+              android:textAppearance="?android:attr/textAppearanceSmall"
+              android:textColor="#ff0000" />
+      </FrameLayout>
+
   </RelativeLayout>
 
   <WebView
